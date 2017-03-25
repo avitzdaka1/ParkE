@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">ParkE</string>
+    <string name="main_settings_text">Settings</string>
+    <string name="search_text1">Enter the parking details:</string>
+    <string name="search_text2">Address:</string>
+    <string name="search_text3">Time:</string>
 </resources>

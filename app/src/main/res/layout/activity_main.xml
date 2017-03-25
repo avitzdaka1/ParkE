@@ -1,19 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout
+<RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.omeryaari.parke.MainActivity">
+    android:id="@+id/main_activity_relative_layout"
+    tools:context="com.omeryaari.parke.ui.MainActivity">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:id="@+id/linearlayout_main_title"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
+        android:gravity="center"
+        android:layout_margin="10dp">
+        <ImageView
+            android:id="@+id/imageview_main_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:src="@drawable/parke_logo_2"
+            android:background="@android:color/transparent"/>
+    </LinearLayout>
 
-</android.support.constraint.ConstraintLayout>
+
+        <LinearLayout
+            android:id="@+id/linearlayout_main_buttons"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/linearlayout_main_title"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:layout_marginBottom="20dp">
+
+            <ImageButton
+                android:id="@+id/imagebutton_main_parking_search"
+                android:src="@drawable/button_parking_search"
+                android:background="@android:color/transparent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+
+            <ImageButton
+                android:id="@+id/imagebutton_main_parking_mark"
+                android:src="@drawable/button_parking_mark"
+                android:background="@android:color/transparent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+        </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/linearlayout_main_buttons"
+        android:gravity="center"
+        android:layout_margin="10dp">
+
+        <Button
+            android:id="@+id/imagebutton__main_settings"
+            android:text="@string/main_settings_text"
+            android:scaleType="fitCenter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+    </LinearLayout>
+
+</RelativeLayout>
