@@ -87,8 +87,9 @@
             android:layout_width="wrap_content"
             android:layout_gravity="center_horizontal"
             android:id="@+id/highscores_fragment_placeholder"
-            android:name="com.omeryaari.minesweeper.ui.TableScoreFragment"
             android:layout_marginBottom="60dp"/>
+            <!--android:name="com.omeryaari.minesweeper.ui.TableScoreFragment" !-->
+
 
     </LinearLayout>
 
