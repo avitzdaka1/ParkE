@@ -81,15 +81,13 @@
                 android:scaleType="fitCenter"/>
 
         </LinearLayout>
-
         <fragment
             android:layout_height="wrap_content"
             android:layout_width="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:id="@+id/highscores_fragment_placeholder"
-            android:layout_marginBottom="60dp"/>
-            <!--android:name="com.omeryaari.minesweeper.ui.TableScoreFragment" !-->
-
+            android:id="@+id/fragment_park_search"
+            android:layout_marginBottom="60dp"
+            android:name="com.google.android.gms.maps.MapFragment"/>
 
     </LinearLayout>
 
