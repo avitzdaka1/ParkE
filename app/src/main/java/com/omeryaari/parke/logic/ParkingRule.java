@@ -13,6 +13,13 @@ public class ParkingRule implements Serializable, Comparable<ParkingRule> {
     private Calendar parkingStart;
     private Calendar parkingEnd;
 
+    public ParkingRule(int parkingDay, Calendar parkingStart, Calendar parkingEnd) {
+        this.parkingDay = parkingDay;
+        this.parkingStart = parkingStart;
+        this.parkingEnd = parkingEnd;
+
+    }
+
     public int getParkingDay() {
         return parkingDay;
     }
@@ -25,20 +32,13 @@ public class ParkingRule implements Serializable, Comparable<ParkingRule> {
         return parkingEnd;
     }
 
-    public ParkingRule(int parkingDay, Calendar parkingStart, Calendar parkingEnd) {
-        this.parkingDay = parkingDay;
-        this.parkingStart = parkingStart;
-        this.parkingEnd = parkingEnd;
-
-    }
-
     @Override
     public int compareTo(@Nullable ParkingRule parking) {
         if (parking != null) {
-            if (this.getParkingDay() > parking.getParkingDay())
+            if (this.parkingDay > parking.getParkingDay())
                 return 1;
-            else if (this.getParkingDay() == parking.getParkingDay())
-                return 0;
+            else if (this.parkingDay == parking.getParkingDay())
+                return this.parkingStart.compareTo(parking.getParkingStart());
             else
                 return -1;
         }

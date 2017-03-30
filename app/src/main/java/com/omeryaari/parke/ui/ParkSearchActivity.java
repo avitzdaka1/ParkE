@@ -54,6 +54,7 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
 
         }
     };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         ActionBar actionBar = getSupportActionBar();
@@ -62,7 +63,8 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
         setContentView(R.layout.activity_park_search);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         initTimerPicker();
-
+        checkLocationPermissions();
+        startAzimutService();
     }
 
     /**
@@ -113,6 +115,10 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
                 bindService(new Intent(ParkSearchActivity.this, GPSTrackerService.class), serviceConnection, Context.BIND_AUTO_CREATE);
             startListeningToGps();
         }
+    }
+
+    private void startAzimutService() {
+        bindService(new Intent(ParkSearchActivity.this, AzimutService.class), serviceConnection, Context.BIND_AUTO_CREATE);
     }
 
     private void setGpsTrackerService(GPSTrackerService gpsTrackerService) {
