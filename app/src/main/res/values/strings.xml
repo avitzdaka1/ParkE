@@ -6,4 +6,6 @@
     <string name="search_text_area_label">Parking Label (if any):</string>
     <string name="search_text_start_time">Starting Time:</string>
     <string name="search_text_end_time">Ending Time:</string>
+    <string name="search_error_toast_text">Please enter parking address, starting time and ending time.</string>
+    <string name="search_address_error_toast_text">Please enter a full address string.</string>
 </resources>

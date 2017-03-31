@@ -69,6 +69,7 @@
                     android:id="@+id/editext_search_area_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:inputType="number"
                     android:maxLines="1"/>
             </LinearLayout>
 

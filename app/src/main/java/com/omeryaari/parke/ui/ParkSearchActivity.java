@@ -18,10 +18,12 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TimePicker;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -33,30 +35,37 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.omeryaari.parke.R;
+import com.omeryaari.parke.logic.FirebaseComm;
+import com.omeryaari.parke.logic.Parking;
 import com.omeryaari.parke.service.AzimutService;
 import com.omeryaari.parke.service.GPSTrackerService;
 
 import java.io.IOException;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 
 public class ParkSearchActivity extends AppCompatActivity implements AzimutService.AzimutListener, GPSTrackerService.LocationChangeListener {
 
     public static final int TAG_CODE_PERMISSION_LOCATION = 2;
     public static final long MIN_TIME_BW_UPDATES = 500;
     public static final float MIN_DISTANCE_CHANGE_FOR_UPDATES = 1;
-    public static final float MAP_ZOOM_DEFAULT = 7.0f;
+    public static final float MAP_ZOOM_DEFAULT = 17.0f;
+
+    private List<Parking> parkingList;
     private GoogleMap gMap;
     private Marker currentLocationMarker;
     private Location currentLocation;
     private EditText editTextTimeStart;
     private EditText editTextTimeEnd;
     private EditText editTextAddress;
+    private EditText editTextAreaLabel;
     private ImageButton imageButtonSearchFree;
     private ImageButton imageButtonSearchPaid;
     private ImageButton imageButtonSearchParkLot;
     private AzimutService azimutService;
     private GPSTrackerService gpsTrackerService;
+    private FirebaseComm firebaseObject;
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -83,10 +92,13 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_park_search);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-        initTimerPicker();
         checkLocationPermissions();
+        startAzimutService();
+        initTimerPicker();
         setupButtons();
-        showMap();
+        editTextAddress = (EditText) findViewById(R.id.editext_search_address);
+        editTextAreaLabel = (EditText) findViewById(R.id.editext_search_area_label);
+        firebaseObject = new FirebaseComm();
     }
 
     /**
@@ -108,14 +120,13 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
                     public void onTimeSet(TimePicker timePicker, int selectedHour, int selectedMinute) {
                         if (selectedHour < 10 || selectedMinute < 10) {
                             if (selectedHour < 10 && selectedMinute < 10)
-                                editTextTimeStart.setText( "0" + selectedHour + ":0" + selectedMinute);
+                                editTextTimeStart.setText("0" + selectedHour + ":0" + selectedMinute);
                             else if (selectedHour < 10)
-                                editTextTimeStart.setText( "0" + selectedHour + ":" + selectedMinute);
+                                editTextTimeStart.setText("0" + selectedHour + ":" + selectedMinute);
                             else
-                                editTextTimeStart.setText( selectedHour + ":0" + selectedMinute);
-                        }
-                        else
-                            editTextTimeStart.setText( selectedHour + ":" + selectedMinute);
+                                editTextTimeStart.setText(selectedHour + ":0" + selectedMinute);
+                        } else
+                            editTextTimeStart.setText(selectedHour + ":" + selectedMinute);
                     }
                 }, hour, minute, true);
                 mTimePicker.setTitle("Select Time");
@@ -137,14 +148,13 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
                     public void onTimeSet(TimePicker timePicker, int selectedHour, int selectedMinute) {
                         if (selectedHour < 10 || selectedMinute < 10) {
                             if (selectedHour < 10 && selectedMinute < 10)
-                                editTextTimeEnd.setText( "0" + selectedHour + ":0" + selectedMinute);
+                                editTextTimeEnd.setText("0" + selectedHour + ":0" + selectedMinute);
                             else if (selectedHour < 10)
-                                editTextTimeEnd.setText( "0" + selectedHour + ":" + selectedMinute);
+                                editTextTimeEnd.setText("0" + selectedHour + ":" + selectedMinute);
                             else
-                                editTextTimeEnd.setText( selectedHour + ":0" + selectedMinute);
-                        }
-                        else
-                            editTextTimeEnd.setText( selectedHour + ":" + selectedMinute);
+                                editTextTimeEnd.setText(selectedHour + ":0" + selectedMinute);
+                        } else
+                            editTextTimeEnd.setText(selectedHour + ":" + selectedMinute);
                     }
                 }, hour, minute, true);
                 mTimePicker.setTitle("Select Time");
@@ -156,12 +166,11 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
     private void checkLocationPermissions() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[] {
+            ActivityCompat.requestPermissions(this, new String[]{
                             Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION },
+                            Manifest.permission.ACCESS_COARSE_LOCATION},
                     TAG_CODE_PERMISSION_LOCATION);
-        }
-        else {
+        } else {
             if (gpsTrackerService == null)
                 bindService(new Intent(ParkSearchActivity.this, GPSTrackerService.class), serviceConnection, Context.BIND_AUTO_CREATE);
             startListeningToGps();
@@ -178,6 +187,7 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
             gpsTrackerService.setLocationChangeListener(this);
         }
         startListeningToGps();
+        showMap();
     }
 
     private void setAzimutService(AzimutService azimutService) {
@@ -191,10 +201,9 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
     //  Checks if google maps is installed.
     public boolean isGoogleMapsInstalled() {
         try {
-            ApplicationInfo info = getPackageManager().getApplicationInfo("com.google.android.apps.maps", 0 );
+            ApplicationInfo info = getPackageManager().getApplicationInfo("com.google.android.apps.maps", 0);
             return info != null;
-        }
-        catch(PackageManager.NameNotFoundException e) {
+        } catch (PackageManager.NameNotFoundException e) {
             return false;
         }
     }
@@ -234,25 +243,41 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
     }
 
     /**
+     *
+     * @param coords the latlng coordinate.
+     * @return address information.
+     */
+    private List<Address> getAddressFromLatLng(LatLng coords) {
+        Geocoder geocoder;
+        geocoder = new Geocoder(this, Locale.getDefault());
+        try {
+            return geocoder.getFromLocation(coords.latitude, coords.longitude, 1);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
      * Returns a given address's coordinates.
      * @param strAddress the address.
      * @return the coordinates.
      */
     private LatLng getLatLngFromAddress(String strAddress) {
         Geocoder coder = new Geocoder(getApplicationContext());
-        List<Address> address;
         LatLng p1 = null;
         try {
             // May throw an IOException
+            List<Address> address;
             address = coder.getFromLocationName(strAddress, 5);
-            if (address == null) {
+            if (address == null || address.size() == 0) {
                 return null;
             }
             Address location = address.get(0);
             location.getLatitude();
             location.getLongitude();
 
-            p1 = new LatLng(location.getLatitude(), location.getLongitude() );
+            p1 = new LatLng(location.getLatitude(), location.getLongitude());
 
         } catch (IOException ex) {
             ex.printStackTrace();
@@ -280,7 +305,6 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
     private void showMap() {
         if (gpsTrackerService != null)
             currentLocation = gpsTrackerService.getLocation();
-        startAzimutService();
         if (isGoogleMapsInstalled()) {
             // Add the Google Maps fragment dynamically
             final FragmentTransaction transaction = getFragmentManager().beginTransaction();
@@ -310,20 +334,97 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
         imageButtonSearchFree.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
+                if (!isInputEmpty()) {
+                    LatLng addressLatLng = getLatLngFromAddress(editTextAddress.getText().toString());
+                    if (addressLatLng == null)
+                        Toast.makeText(ParkSearchActivity.this, R.string.search_address_error_toast_text, Toast.LENGTH_LONG).show();
+                    else {
+                        List<Address> addresses = getAddressFromLatLng(addressLatLng);
+                        if (addresses != null) {
+                            parkingList = firebaseObject.getParkings(addresses, FirebaseComm.FIREBASE_FREE_PARKING_LOCATION, false);
+                            moveCameraToTarget(addressLatLng);
+                        }
+                    }
+                }
             }
         });
         imageButtonSearchPaid.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
+                if (!isInputEmpty()) {
+                    LatLng addressLatLng = getLatLngFromAddress(editTextAddress.getText().toString());
+                    if (addressLatLng == null)
+                        Toast.makeText(ParkSearchActivity.this, R.string.search_address_error_toast_text, Toast.LENGTH_LONG).show();
+                    else {
+                        List<Address> addresses = getAddressFromLatLng(addressLatLng);
+                        if (addresses != null) {
+                            if (TextUtils.isEmpty(editTextAreaLabel.getText().toString()))
+                                parkingList = firebaseObject.getParkings(addresses, FirebaseComm.FIREBASE_PAID_PARKING_LOCATION, true);
+                            else
+                                parkingList = firebaseObject.getParkings(addresses, FirebaseComm.FIREBASE_PAID_PARKING_LOCATION, false);
+                            moveCameraToTarget(addressLatLng);
+                        }
+                    }
+                }
             }
         });
         imageButtonSearchParkLot.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                finish();
+                if (!isInputEmpty()) {
+                    LatLng addressLatLng = getLatLngFromAddress(editTextAddress.getText().toString());
+                    if (addressLatLng == null)
+                        Toast.makeText(ParkSearchActivity.this, R.string.search_address_error_toast_text, Toast.LENGTH_LONG).show();
+                    else {
+                        List<Address> addresses = getAddressFromLatLng(addressLatLng);
+                        if (addresses != null) {
+                            parkingList = firebaseObject.getParkings(addresses, FirebaseComm.FIREBASE_PARKING_LOT_PARKING_LOCATION, false);
+                            moveCameraToTarget(addressLatLng);
+                        }
+                    }
+                }
             }
         });
+    }
+
+    /**
+     * Checks if the user has entered all details.
+     * @return whether the user has entered address, parking start time and parking end time.
+     */
+    private boolean isInputEmpty() {
+        if (TextUtils.isEmpty(editTextAddress.getText().toString()) ||
+                TextUtils.isEmpty(editTextTimeStart.getText().toString()) ||
+                TextUtils.isEmpty(editTextTimeEnd.getText().toString())) {
+            Toast.makeText(ParkSearchActivity.this, R.string.search_error_toast_text, Toast.LENGTH_LONG).show();
+        }
+        else {
+            return false;
+        }
+        return true;
+    }
+
+    private void moveCameraToTarget(LatLng target) {
+        if (gpsTrackerService != null)
+            gMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(target.latitude, target.longitude), MAP_ZOOM_DEFAULT));
+    }
+
+    @Override
+    protected void onResume() {
+        checkLocationPermissions();
+        startListeningToAzimut();
+        super.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        stopListeningToGps();
+        stopListeningToAzimut();
+        super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        unbindService(serviceConnection);
+        super.onDestroy();
     }
 }
