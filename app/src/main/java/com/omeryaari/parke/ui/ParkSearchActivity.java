@@ -1,6 +1,7 @@
 package com.omeryaari.parke.ui;
 
 import android.Manifest;
+import android.app.FragmentTransaction;
 import android.app.TimePickerDialog;
 import android.content.ComponentName;
 import android.content.Context;
@@ -9,6 +10,8 @@ import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.os.IBinder;
 import android.support.v4.app.ActivityCompat;
@@ -17,25 +20,41 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TimePicker;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.MapFragment;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptor;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.omeryaari.parke.R;
 import com.omeryaari.parke.service.AzimutService;
 import com.omeryaari.parke.service.GPSTrackerService;
 
+import java.io.IOException;
 import java.util.Calendar;
+import java.util.List;
 
 public class ParkSearchActivity extends AppCompatActivity implements AzimutService.AzimutListener, GPSTrackerService.LocationChangeListener {
 
     public static final int TAG_CODE_PERMISSION_LOCATION = 2;
     public static final long MIN_TIME_BW_UPDATES = 500;
     public static final float MIN_DISTANCE_CHANGE_FOR_UPDATES = 1;
+    public static final float MAP_ZOOM_DEFAULT = 7.0f;
+    private GoogleMap gMap;
     private Marker currentLocationMarker;
     private Location currentLocation;
-    private EditText editTextTime;
+    private EditText editTextTimeStart;
+    private EditText editTextTimeEnd;
     private EditText editTextAddress;
+    private ImageButton imageButtonSearchFree;
+    private ImageButton imageButtonSearchPaid;
+    private ImageButton imageButtonSearchParkLot;
     private AzimutService azimutService;
     private GPSTrackerService gpsTrackerService;
 
@@ -55,24 +74,27 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
         }
     };
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         ActionBar actionBar = getSupportActionBar();
-        actionBar.hide();
+        if (actionBar != null)
+            actionBar.hide();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_park_search);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         initTimerPicker();
         checkLocationPermissions();
-        startAzimutService();
+        setupButtons();
+        showMap();
     }
 
     /**
-     * Initializes the timer picker
+     * Initializes the timer pickers
      */
     private void initTimerPicker() {
-        editTextTime = (EditText) findViewById(R.id.editext_search_time);
-        editTextTime.setOnClickListener(new View.OnClickListener() {
+        editTextTimeStart = (EditText) findViewById(R.id.editext_search_start_time);
+        editTextTimeStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Calendar currentTime = Calendar.getInstance();
@@ -86,14 +108,43 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
                     public void onTimeSet(TimePicker timePicker, int selectedHour, int selectedMinute) {
                         if (selectedHour < 10 || selectedMinute < 10) {
                             if (selectedHour < 10 && selectedMinute < 10)
-                                editTextTime.setText( "0" + selectedHour + ":0" + selectedMinute);
+                                editTextTimeStart.setText( "0" + selectedHour + ":0" + selectedMinute);
                             else if (selectedHour < 10)
-                                editTextTime.setText( "0" + selectedHour + ":" + selectedMinute);
+                                editTextTimeStart.setText( "0" + selectedHour + ":" + selectedMinute);
                             else
-                                editTextTime.setText( selectedHour + ":0" + selectedMinute);
+                                editTextTimeStart.setText( selectedHour + ":0" + selectedMinute);
                         }
                         else
-                            editTextTime.setText( selectedHour + ":" + selectedMinute);
+                            editTextTimeStart.setText( selectedHour + ":" + selectedMinute);
+                    }
+                }, hour, minute, true);
+                mTimePicker.setTitle("Select Time");
+                mTimePicker.show();
+            }
+        });
+        editTextTimeEnd = (EditText) findViewById(R.id.editext_search_end_time);
+        editTextTimeEnd.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Calendar currentTime = Calendar.getInstance();
+                int hour = currentTime.get(Calendar.HOUR_OF_DAY);
+                int minute = currentTime.get(Calendar.MINUTE);
+
+                TimePickerDialog mTimePicker;
+                //  Opens up a time picker dialog for the user to choose desired parking time.
+                mTimePicker = new TimePickerDialog(ParkSearchActivity.this, new TimePickerDialog.OnTimeSetListener() {
+                    @Override
+                    public void onTimeSet(TimePicker timePicker, int selectedHour, int selectedMinute) {
+                        if (selectedHour < 10 || selectedMinute < 10) {
+                            if (selectedHour < 10 && selectedMinute < 10)
+                                editTextTimeEnd.setText( "0" + selectedHour + ":0" + selectedMinute);
+                            else if (selectedHour < 10)
+                                editTextTimeEnd.setText( "0" + selectedHour + ":" + selectedMinute);
+                            else
+                                editTextTimeEnd.setText( selectedHour + ":0" + selectedMinute);
+                        }
+                        else
+                            editTextTimeEnd.setText( selectedHour + ":" + selectedMinute);
                     }
                 }, hour, minute, true);
                 mTimePicker.setTitle("Select Time");
@@ -180,5 +231,99 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
     public void onNewLocation(Location location) {
         if (currentLocationMarker != null)
             currentLocationMarker.setPosition(new LatLng(location.getLatitude(), location.getLongitude()));
+    }
+
+    /**
+     * Returns a given address's coordinates.
+     * @param strAddress the address.
+     * @return the coordinates.
+     */
+    private LatLng getLatLngFromAddress(String strAddress) {
+        Geocoder coder = new Geocoder(getApplicationContext());
+        List<Address> address;
+        LatLng p1 = null;
+        try {
+            // May throw an IOException
+            address = coder.getFromLocationName(strAddress, 5);
+            if (address == null) {
+                return null;
+            }
+            Address location = address.get(0);
+            location.getLatitude();
+            location.getLongitude();
+
+            p1 = new LatLng(location.getLatitude(), location.getLongitude() );
+
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+        return p1;
+    }
+
+    /**
+     * Adds a marker that indicates the user's location to the google map
+     */
+    private void addUserMarker() {
+        BitmapDescriptor currentLocationIcon = BitmapDescriptorFactory.fromResource(R.drawable.location_arrow_small);
+        if (currentLocationMarker != null)
+            currentLocationMarker.remove();
+        if (currentLocation != null)
+            currentLocationMarker = gMap.addMarker(new MarkerOptions()
+                    .position(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()))
+                    .rotation(0)
+                    .icon(currentLocationIcon));
+    }
+
+    /**
+     * Shows the google map with the current user's location.
+     */
+    private void showMap() {
+        if (gpsTrackerService != null)
+            currentLocation = gpsTrackerService.getLocation();
+        startAzimutService();
+        if (isGoogleMapsInstalled()) {
+            // Add the Google Maps fragment dynamically
+            final FragmentTransaction transaction = getFragmentManager().beginTransaction();
+            MapFragment mapFragment = MapFragment.newInstance();
+            transaction.replace(R.id.fragment_park_search, mapFragment);
+            transaction.commit();
+
+            mapFragment.getMapAsync(new OnMapReadyCallback() {
+                @Override
+                public void onMapReady(GoogleMap googleMap) {
+                    if (gpsTrackerService != null)
+                        googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()), MAP_ZOOM_DEFAULT));
+                    gMap = googleMap;
+                    addUserMarker();
+                }
+            });
+        }
+    }
+
+    /**
+     * Assigns listeners to the parking search buttons.
+     */
+    private void setupButtons() {
+        imageButtonSearchFree = (ImageButton) findViewById(R.id.imagebutton_search_free);
+        imageButtonSearchPaid = (ImageButton) findViewById(R.id.imagebutton_search_paid);
+        imageButtonSearchParkLot = (ImageButton) findViewById(R.id.imagebutton_search_parking_lot);
+        imageButtonSearchFree.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+            }
+        });
+        imageButtonSearchPaid.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+            }
+        });
+        imageButtonSearchParkLot.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                finish();
+            }
+        });
     }
 }

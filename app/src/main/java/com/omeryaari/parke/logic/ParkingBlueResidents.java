@@ -12,8 +12,8 @@ public class ParkingBlueResidents extends Parking implements Serializable {
     private ArrayList<ParkingRule> residentParkingRules;
     private int areaLabel;
 
-    public ParkingBlueResidents(long id, double longitude, double latitude, String parkingImageURL, int areaLabel) {
-        super(id, longitude, latitude, parkingImageURL);
+    public ParkingBlueResidents(double longitude, double latitude, String parkingImageURL, int areaLabel) {
+        super(longitude, latitude, parkingImageURL);
         this.areaLabel = areaLabel;
         paidParkingRules = new ArrayList<>();
         residentParkingRules = new ArrayList<>();

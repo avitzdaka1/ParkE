@@ -7,8 +7,8 @@ public class ParkingLot extends Parking {
 
     private double price;
 
-    public ParkingLot(long id, double longitude, double latitude, String parkingImageURL, double price) {
-        super(id, longitude, latitude, parkingImageURL);
+    public ParkingLot(double longitude, double latitude, String parkingImageURL, double price) {
+        super(longitude, latitude, parkingImageURL);
         this.price = price;
     }
 

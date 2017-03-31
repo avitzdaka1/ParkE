@@ -10,8 +10,8 @@ public class ParkingBlue extends Parking implements Serializable {
 
     private ArrayList<ParkingRule> paidParkingRules;
 
-    public ParkingBlue(long id, double longitude, double latitude, String parkingImageURL) {
-        super(id, longitude, latitude, parkingImageURL);
+    public ParkingBlue(double longitude, double latitude, String parkingImageURL) {
+        super(longitude, latitude, parkingImageURL);
         paidParkingRules = new ArrayList<>();
     }
 

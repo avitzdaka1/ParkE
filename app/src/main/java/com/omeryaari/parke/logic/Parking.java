@@ -7,13 +7,14 @@ import java.io.Serializable;
  */
 public class Parking implements Serializable {
 
-    private long id;
     private double longitude;
     private double latitude;
     private String parkingImageURL;
+    private String firebaseKey;
 
-    public Parking(long id, double longitude, double latitude, String parkingImageURL) {
-        this.id = id;
+    private boolean isReported = false;
+
+    public Parking(double longitude, double latitude, String parkingImageURL) {
         this.longitude = longitude;
         this.latitude = latitude;
         this.parkingImageURL = parkingImageURL;
@@ -31,7 +32,19 @@ public class Parking implements Serializable {
         return parkingImageURL;
     }
 
-    public long getId() {
-        return id;
+    public boolean isReported() {
+        return isReported;
+    }
+
+    public void setReported(boolean reported) {
+        isReported = reported;
+    }
+
+    public String getFirebaseKey() {
+        return firebaseKey;
+    }
+
+    public void setFirebaseKey(String firebaseKey) {
+        this.firebaseKey = firebaseKey;
     }
 }
