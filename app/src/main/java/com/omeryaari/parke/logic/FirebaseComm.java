@@ -1,6 +1,8 @@
 package com.omeryaari.parke.logic;
 
 import android.location.Address;
+import android.os.Handler;
+
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -21,12 +23,17 @@ public class FirebaseComm {
     public static final String FIREBASE_FREE_PARKING_LOCATION = "Free";
     public static final String FIREBASE_PARKING_LOT_PARKING_LOCATION = "ParkingLot";
     public static final String FIREBASE_EXCEPTION_PARKING_LOCATION = "Exception";
+    public FirebaseParkingDownloadListener parkingDownloadEvent;
     private DatabaseReference database;
-    private ArrayList<Parking> parkingList;
+    private static List<Parking> parkingList;
 
     public FirebaseComm() {
         database = FirebaseDatabase.getInstance().getReference();
         parkingList = new ArrayList<>();
+    }
+
+    public void setListener(FirebaseParkingDownloadListener listener) {
+        parkingDownloadEvent = listener;
     }
 
     /**
@@ -35,11 +42,11 @@ public class FirebaseComm {
      * @param type the parking type (free / paid / parking lot).
      * @return a list of parking spots.
      */
-    public List<Parking> getParkings(List<Address> addresses, String type, boolean hasAreaLabel) {
+    public void getParkings(List<Address> addresses, String type, boolean hasAreaLabel) {
         parkingList.clear();
         String country = addresses.get(0).getCountryName();
         String city = addresses.get(0).getLocality();
-        String address = addresses.get(0).getAddressLine(0);
+        //String address = addresses.get(0).getAddressLine(0);
         switch (type) {
             case FIREBASE_FREE_PARKING_LOCATION:
                 downloadFreeParkings(country, city);
@@ -56,7 +63,6 @@ public class FirebaseComm {
                 downloadParkingLots(country, city);
                 break;
         }
-        return parkingList;
     }
 
     /**
@@ -102,7 +108,7 @@ public class FirebaseComm {
             return FIREBASE_PAID_RESIDENTS_PARKING_LOCATION;
         else if (parking instanceof ParkingLot)
             return FIREBASE_PARKING_LOT_PARKING_LOCATION;
-        else if (parking instanceof ParkingWithException)
+        else if (parking instanceof ParkingSpecial)
             return FIREBASE_EXCEPTION_PARKING_LOCATION;
         else
             return FIREBASE_FREE_PARKING_LOCATION;
@@ -114,13 +120,17 @@ public class FirebaseComm {
      * @param city the given city to download parking spots from.
      */
     private void downloadBlueParkings(String country, String city) {
-        database.child(FIREBASE_PARKING_LOCATION).child(country).child(city).addListenerForSingleValueEvent(new ValueEventListener() {
+        database.child(FIREBASE_PARKING_LOCATION).child(country).child(city).child(FIREBASE_PAID_PARKING_LOCATION).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
+                boolean hasDownloadedAny = false;
                 for(DataSnapshot snap : dataSnapshot.getChildren()) {
                     ParkingBlue tempParking = snap.getValue(ParkingBlue.class);
                     parkingList.add(tempParking);
+                    hasDownloadedAny = true;
                 }
+                if (hasDownloadedAny)
+                    parkingDownloadEvent.parkingDownloaded(parkingList, FIREBASE_PAID_PARKING_LOCATION);
             }
 
             @Override
@@ -136,13 +146,17 @@ public class FirebaseComm {
      * @param city the given city to download parking spots from.
      */
     private void downloadBlueResidentsParkings(String country, String city) {
-        database.child(FIREBASE_PARKING_LOCATION).child(country).child(city).addListenerForSingleValueEvent(new ValueEventListener() {
+        database.child(FIREBASE_PARKING_LOCATION).child(country).child(city).child(FIREBASE_PAID_RESIDENTS_PARKING_LOCATION).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
+                boolean hasDownloadedAny = false;
                 for(DataSnapshot snap : dataSnapshot.getChildren()) {
                     ParkingBlueResidents tempParking = snap.getValue(ParkingBlueResidents.class);
                     parkingList.add(tempParking);
+                    hasDownloadedAny = true;
                 }
+                if (hasDownloadedAny)
+                    parkingDownloadEvent.parkingDownloaded(parkingList, FIREBASE_PAID_RESIDENTS_PARKING_LOCATION);
             }
 
             @Override
@@ -158,13 +172,17 @@ public class FirebaseComm {
      * @param city the given city to download parking lots from.
      */
     private void downloadParkingLots(String country, String city) {
-        database.child(FIREBASE_PARKING_LOCATION).child(country).child(city).addListenerForSingleValueEvent(new ValueEventListener() {
+        database.child(FIREBASE_PARKING_LOCATION).child(country).child(city).child(FIREBASE_PARKING_LOT_PARKING_LOCATION).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
+                boolean hasDownloadedAny = false;
                 for(DataSnapshot snap : dataSnapshot.getChildren()) {
                     ParkingLot tempParking = snap.getValue(ParkingLot.class);
                     parkingList.add(tempParking);
+                    hasDownloadedAny = true;
                 }
+                if (hasDownloadedAny)
+                    parkingDownloadEvent.parkingDownloaded(parkingList, FIREBASE_PARKING_LOT_PARKING_LOCATION);
             }
 
             @Override
@@ -180,13 +198,17 @@ public class FirebaseComm {
      * @param city the given city to download parking spots from.
      */
     private void downloadSpecialParkings(String country, String city) {
-        database.child(FIREBASE_PARKING_LOCATION).child(country).child(city).addListenerForSingleValueEvent(new ValueEventListener() {
+        database.child(FIREBASE_PARKING_LOCATION).child(country).child(city).child(FIREBASE_EXCEPTION_PARKING_LOCATION).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
+                boolean hasDownloadedAny = false;
                 for(DataSnapshot snap : dataSnapshot.getChildren()) {
-                    ParkingWithException tempParking = snap.getValue(ParkingWithException.class);
+                    ParkingSpecial tempParking = snap.getValue(ParkingSpecial.class);
                     parkingList.add(tempParking);
+                    hasDownloadedAny = true;
                 }
+                if (hasDownloadedAny)
+                    parkingDownloadEvent.parkingDownloaded(parkingList, FIREBASE_EXCEPTION_PARKING_LOCATION);
             }
 
             @Override
@@ -202,13 +224,17 @@ public class FirebaseComm {
      * @param city the given city to download parking spots from.
      */
     private void downloadFreeParkings(String country, String city) {
-        database.child(FIREBASE_PARKING_LOCATION).child(country).child(city).addListenerForSingleValueEvent(new ValueEventListener() {
+        database.child(FIREBASE_PARKING_LOCATION).child(country).child(city).child(FIREBASE_FREE_PARKING_LOCATION).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
+                boolean hasDownloadedAny = false;
                 for(DataSnapshot snap : dataSnapshot.getChildren()) {
                     Parking tempParking = snap.getValue(Parking.class);
                     parkingList.add(tempParking);
+                    hasDownloadedAny = true;
                 }
+                if (hasDownloadedAny)
+                    parkingDownloadEvent.parkingDownloaded(parkingList, FIREBASE_FREE_PARKING_LOCATION);
             }
 
             @Override

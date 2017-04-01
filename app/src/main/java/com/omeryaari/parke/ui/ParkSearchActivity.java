@@ -10,18 +10,28 @@ import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
+import android.net.Uri;
 import android.os.IBinder;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.Gravity;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
 
@@ -36,33 +46,44 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.omeryaari.parke.R;
 import com.omeryaari.parke.logic.FirebaseComm;
+import com.omeryaari.parke.logic.FirebaseParkingDownloadListener;
 import com.omeryaari.parke.logic.Parking;
+import com.omeryaari.parke.logic.ParkingBlue;
+import com.omeryaari.parke.logic.ParkingBlueResidents;
+import com.omeryaari.parke.logic.ParkingLot;
+import com.omeryaari.parke.logic.ParkingRule;
+import com.omeryaari.parke.logic.ParkingSpecial;
 import com.omeryaari.parke.service.AzimutService;
 import com.omeryaari.parke.service.GPSTrackerService;
 
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Locale;
 
-public class ParkSearchActivity extends AppCompatActivity implements AzimutService.AzimutListener, GPSTrackerService.LocationChangeListener {
+public class ParkSearchActivity extends AppCompatActivity implements AzimutService.AzimutListener, GPSTrackerService.LocationChangeListener, FirebaseParkingDownloadListener {
 
     public static final int TAG_CODE_PERMISSION_LOCATION = 2;
     public static final long MIN_TIME_BW_UPDATES = 500;
     public static final float MIN_DISTANCE_CHANGE_FOR_UPDATES = 1;
     public static final float MAP_ZOOM_DEFAULT = 17.0f;
 
+    private String currentRequest;
+    private Calendar calendar;
     private List<Parking> parkingList;
     private GoogleMap gMap;
     private Marker currentLocationMarker;
+    private ArrayList<Marker> parkingMarkerList;
+    private ArrayList<String> parkingSpinnerDays;
     private Location currentLocation;
-    private EditText editTextTimeStart;
-    private EditText editTextTimeEnd;
-    private EditText editTextAddress;
-    private EditText editTextAreaLabel;
-    private ImageButton imageButtonSearchFree;
-    private ImageButton imageButtonSearchPaid;
-    private ImageButton imageButtonSearchParkLot;
+    private Spinner spinnerParkingDays;
+    private EditText editTextTimeStart, editTextTimeEnd, editTextAddress, editTextAreaLabel;
+    private ImageButton imageButtonSearchFree, imageButtonSearchPaid, imageButtonSearchParkLot;
     private AzimutService azimutService;
     private GPSTrackerService gpsTrackerService;
     private FirebaseComm firebaseObject;
@@ -94,17 +115,41 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         checkLocationPermissions();
         startAzimutService();
-        initTimerPicker();
+        initTimePicker();
+        initParkingDaysSpinner();
         setupButtons();
+        parkingMarkerList = new ArrayList<>();
         editTextAddress = (EditText) findViewById(R.id.editext_search_address);
         editTextAreaLabel = (EditText) findViewById(R.id.editext_search_area_label);
+        parkingList = new ArrayList<>();
         firebaseObject = new FirebaseComm();
+        firebaseObject.setListener(this);
+    }
+
+
+    /**
+     * Initializes the parking rules spinner.
+     */
+    private void initParkingDaysSpinner() {
+        spinnerParkingDays = (Spinner) findViewById(R.id.spinner_parking_mark_day);
+
+        parkingSpinnerDays = new ArrayList<>();
+        parkingSpinnerDays.add(ParkMarkActivity.DAY_SUNDAY);
+        parkingSpinnerDays.add(ParkMarkActivity.DAY_MONDAY);
+        parkingSpinnerDays.add(ParkMarkActivity.DAY_TUESDAY);
+        parkingSpinnerDays.add(ParkMarkActivity.DAY_WEDNESDAY);
+        parkingSpinnerDays.add(ParkMarkActivity.DAY_THURSDAY);
+        parkingSpinnerDays.add(ParkMarkActivity.DAY_FRIDAY);
+        parkingSpinnerDays.add(ParkMarkActivity.DAY_SATURDAY);
+
+        ArrayAdapter<String> parkingDaysAdapter = new ArrayAdapter<>(this, R.layout.spinner_text_layout, parkingSpinnerDays);
+        spinnerParkingDays.setAdapter(parkingDaysAdapter);
     }
 
     /**
-     * Initializes the timer pickers
+     * Initializes the time pickers
      */
-    private void initTimerPicker() {
+    private void initTimePicker() {
         editTextTimeStart = (EditText) findViewById(R.id.editext_search_start_time);
         editTextTimeStart.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -163,6 +208,9 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
         });
     }
 
+    /**
+     * Checks location permissions and if the user has given permission, the function will start listening to the location services.
+     */
     private void checkLocationPermissions() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -248,8 +296,8 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
      * @return address information.
      */
     private List<Address> getAddressFromLatLng(LatLng coords) {
-        Geocoder geocoder;
-        geocoder = new Geocoder(this, Locale.getDefault());
+        Locale english = new Locale("en");
+        Geocoder geocoder = new Geocoder(this, english);
         try {
             return geocoder.getFromLocation(coords.latitude, coords.longitude, 1);
         } catch (IOException e) {
@@ -264,12 +312,13 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
      * @return the coordinates.
      */
     private LatLng getLatLngFromAddress(String strAddress) {
-        Geocoder coder = new Geocoder(getApplicationContext());
+        Locale english = new Locale("en");
+        Geocoder geocoder = new Geocoder(this, english);
         LatLng p1 = null;
         try {
             // May throw an IOException
             List<Address> address;
-            address = coder.getFromLocationName(strAddress, 5);
+            address = geocoder.getFromLocationName(strAddress, 5);
             if (address == null || address.size() == 0) {
                 return null;
             }
@@ -283,20 +332,6 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
             ex.printStackTrace();
         }
         return p1;
-    }
-
-    /**
-     * Adds a marker that indicates the user's location to the google map
-     */
-    private void addUserMarker() {
-        BitmapDescriptor currentLocationIcon = BitmapDescriptorFactory.fromResource(R.drawable.location_arrow_small);
-        if (currentLocationMarker != null)
-            currentLocationMarker.remove();
-        if (currentLocation != null)
-            currentLocationMarker = gMap.addMarker(new MarkerOptions()
-                    .position(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()))
-                    .rotation(0)
-                    .icon(currentLocationIcon));
     }
 
     /**
@@ -318,7 +353,7 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
                     if (gpsTrackerService != null)
                         googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()), MAP_ZOOM_DEFAULT));
                     gMap = googleMap;
-                    addUserMarker();
+                    addCustomMarker(R.drawable.location_arrow_small, new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()), true, null, null);
                 }
             });
         }
@@ -335,16 +370,10 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
             @Override
             public void onClick(View view) {
                 if (!isInputEmpty()) {
-                    LatLng addressLatLng = getLatLngFromAddress(editTextAddress.getText().toString());
-                    if (addressLatLng == null)
-                        Toast.makeText(ParkSearchActivity.this, R.string.search_address_error_toast_text, Toast.LENGTH_LONG).show();
-                    else {
-                        List<Address> addresses = getAddressFromLatLng(addressLatLng);
-                        if (addresses != null) {
-                            parkingList = firebaseObject.getParkings(addresses, FirebaseComm.FIREBASE_FREE_PARKING_LOCATION, false);
-                            moveCameraToTarget(addressLatLng);
-                        }
-                    }
+                    removeMarkersFromMap();
+                    parkingList.clear();
+                    downloadParkings(FirebaseComm.FIREBASE_FREE_PARKING_LOCATION);
+                    currentRequest = FirebaseComm.FIREBASE_FREE_PARKING_LOCATION;
                 }
             }
         });
@@ -352,19 +381,10 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
             @Override
             public void onClick(View view) {
                 if (!isInputEmpty()) {
-                    LatLng addressLatLng = getLatLngFromAddress(editTextAddress.getText().toString());
-                    if (addressLatLng == null)
-                        Toast.makeText(ParkSearchActivity.this, R.string.search_address_error_toast_text, Toast.LENGTH_LONG).show();
-                    else {
-                        List<Address> addresses = getAddressFromLatLng(addressLatLng);
-                        if (addresses != null) {
-                            if (TextUtils.isEmpty(editTextAreaLabel.getText().toString()))
-                                parkingList = firebaseObject.getParkings(addresses, FirebaseComm.FIREBASE_PAID_PARKING_LOCATION, true);
-                            else
-                                parkingList = firebaseObject.getParkings(addresses, FirebaseComm.FIREBASE_PAID_PARKING_LOCATION, false);
-                            moveCameraToTarget(addressLatLng);
-                        }
-                    }
+                    removeMarkersFromMap();
+                    parkingList.clear();
+                    downloadParkings(FirebaseComm.FIREBASE_PAID_PARKING_LOCATION);
+                    currentRequest = FirebaseComm.FIREBASE_PAID_PARKING_LOCATION;
                 }
             }
         });
@@ -372,19 +392,172 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
             @Override
             public void onClick(View view) {
                 if (!isInputEmpty()) {
-                    LatLng addressLatLng = getLatLngFromAddress(editTextAddress.getText().toString());
-                    if (addressLatLng == null)
-                        Toast.makeText(ParkSearchActivity.this, R.string.search_address_error_toast_text, Toast.LENGTH_LONG).show();
-                    else {
-                        List<Address> addresses = getAddressFromLatLng(addressLatLng);
-                        if (addresses != null) {
-                            parkingList = firebaseObject.getParkings(addresses, FirebaseComm.FIREBASE_PARKING_LOT_PARKING_LOCATION, false);
-                            moveCameraToTarget(addressLatLng);
-                        }
-                    }
+                    removeMarkersFromMap();
+                    parkingList.clear();
+                    downloadParkings(FirebaseComm.FIREBASE_PARKING_LOT_PARKING_LOCATION);
+                    currentRequest = FirebaseComm.FIREBASE_PARKING_LOT_PARKING_LOCATION;
                 }
             }
         });
+    }
+
+    /**
+     * Checks the class of the parking instance object.
+     * @param parking the Parking object.
+     * @return the Parking's class.
+     */
+    private String checkParkingType(Parking parking) {
+        if (parking instanceof ParkingBlue)
+            return ParkMarkActivity.PARKING_BLUE;
+        else if (parking instanceof ParkingBlueResidents)
+            return ParkMarkActivity.PARKING_BLUE_RESIDENTS;
+        else if (parking instanceof ParkingLot)
+            return ParkMarkActivity.PARKING_PARK_LOT;
+        else if (parking instanceof ParkingSpecial)
+            return ParkMarkActivity.PARKING_SPECIAL;
+        else
+            return ParkMarkActivity.PARKING_FREE;
+    }
+
+    /**
+     *  Adds free parking spots to the map.
+     */
+    private void addFreeParkings() {
+        LatLng coords;
+        for(Parking park : parkingList) {
+            coords = new LatLng(park.getLatitude(), park.getLongitude());
+            String type = checkParkingType(park);
+            switch (type) {
+                case ParkMarkActivity.PARKING_BLUE:
+                    ParkingBlue parkingBlue = (ParkingBlue) park;
+                    if (canParkFree(parkingBlue.getPaidParkingRules())) {
+                        addCustomMarker(R.drawable.parking_blue, coords, false, parkingBlue, getAddressFromLatLng(coords));
+                        coords = getLatLngFromAddress(editTextAddress.getText().toString());
+                        moveCameraToTarget(coords);
+                    }
+                    break;
+                case ParkMarkActivity.PARKING_BLUE_RESIDENTS:
+                    ParkingBlueResidents parkingBlueResidents = (ParkingBlueResidents) park;
+                    if (Integer.parseInt(editTextAreaLabel.getText().toString()) == parkingBlueResidents.getAreaLabel())
+                        addCustomMarker(R.drawable.parking_blue_residents, coords, false, parkingBlueResidents, getAddressFromLatLng(coords));
+                    break;
+                case ParkMarkActivity.PARKING_SPECIAL:
+                    ParkingSpecial parkingSpecial = (ParkingSpecial) park;
+                    if (canParkFree(parkingSpecial.getProhibitedParkingRules()))
+                        addCustomMarker(R.drawable.parking_special, coords, false, parkingSpecial, getAddressFromLatLng(coords));
+                    break;
+                case ParkMarkActivity.PARKING_FREE:
+                    addCustomMarker(R.drawable.parking_free, coords, false, park, getAddressFromLatLng(coords));
+                    coords = getLatLngFromAddress(editTextAddress.getText().toString());
+                    moveCameraToTarget(coords);
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Given an array of rules, checks if the user can park freely today.
+     * @param rules the arraylist of parking rules.
+     * @return whether the user can park today in the given parking rules.
+     */
+    private boolean canParkFree(List<ParkingRule> rules) {
+        boolean canPark = false;
+        int parkingDay = ParkMarkActivity.determineDayOfWeek(spinnerParkingDays.getSelectedItem().toString());
+        try {
+            Date selectedStartTime = new SimpleDateFormat("HH:mm").parse(editTextTimeStart.getText().toString());
+            Calendar calendarSelectedStartTime = Calendar.getInstance();
+            calendarSelectedStartTime.setTime(selectedStartTime);
+
+            Date selectedEndTime = new SimpleDateFormat("HH:mm").parse(editTextTimeEnd.getText().toString());
+            Calendar calendarSelectedEndTime = Calendar.getInstance();
+            calendarSelectedEndTime.setTime(selectedEndTime);
+
+            for(ParkingRule rule : rules) {
+                if (rule.getParkingDay() == parkingDay) {
+                    Date parkingStartTime = new SimpleDateFormat("HH:mm").parse(rule.getParkingStartHour() + ":" + rule.getParkingStartMinute());
+                    Calendar calendarParkingStartTime = Calendar.getInstance();
+                    calendarParkingStartTime.setTime(parkingStartTime);
+
+                    Date parkingEndTime = new SimpleDateFormat("HH:mm").parse(rule.getParkingEndHour() + ":" + rule.getParkingEndMinute());
+                    Calendar calendarParkingEndTime = Calendar.getInstance();
+                    calendarParkingEndTime.setTime(parkingEndTime);
+                    if (((calendarSelectedStartTime.after(calendarParkingEndTime) || calendarSelectedStartTime.equals(calendarParkingEndTime)) && calendarSelectedEndTime.after(calendarSelectedStartTime) ||
+                            (calendarSelectedEndTime.before(calendarParkingStartTime) || calendarSelectedEndTime.equals(calendarParkingStartTime)) && calendarSelectedStartTime.before(calendarSelectedEndTime))) {
+                        canPark = true;
+                    }
+                    else if (calendarSelectedStartTime.after(calendarSelectedEndTime)) {
+                        for(ParkingRule rule2 : rules) {
+                            if (rule2.getParkingDay() == parkingDay + 1 || (parkingDay == 7 && rule2.getParkingDay() == 1)) {
+                                Date parkingStartTime2 = new SimpleDateFormat("HH:mm").parse(rule.getParkingStartHour() + ":" + rule.getParkingStartMinute());
+                                Calendar calendarParkingStartTime2 = Calendar.getInstance();
+                                calendarParkingStartTime2.setTime(parkingStartTime2);
+
+                                Date parkingEndTime2 = new SimpleDateFormat("HH:mm").parse(rule.getParkingEndHour() + ":" + rule.getParkingEndMinute());
+                                Calendar calendarParkingEndTime2 = Calendar.getInstance();
+                                calendarParkingEndTime2.setTime(parkingEndTime2);
+
+                                if (((calendarSelectedStartTime.after(calendarParkingEndTime) || calendarSelectedStartTime.equals(calendarParkingEndTime)) &&
+                                        (calendarSelectedEndTime.before(calendarParkingStartTime2) || calendarSelectedEndTime.equals(calendarParkingStartTime2)))) {
+                                    canPark = true;
+                                }
+                                else
+                                    return false;
+                            }
+                            else
+                                canPark = true;
+                        }
+                    }
+                }
+                else
+                    canPark = true;
+            }
+        }
+        catch (ParseException ex) {
+            ex.printStackTrace();
+            canPark = false;
+        }
+        return canPark;
+    }
+
+    /**
+     * Converts time string to int (given string and type - hour or minute)
+     * @param type type - hour or minute.
+     * @param str the time string.
+     * @return integer.
+     */
+    private int getTimeFromString(int type, String str) {
+        String[] stringArr = str.split(":");
+        return Integer.parseInt(stringArr[type]);
+    }
+
+    /**
+     *  Starts navigation to the desired address using the google navigation app.
+     */
+    private void startGoogleNavigation(LatLng address) {
+        Intent navigation = new Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse("http://maps.google.com/maps?saddr=" + currentLocation.getLatitude() + "," +
+                        currentLocation.getLongitude() + "&daddr=" + address.latitude + "," + address.longitude));
+        startActivity(navigation);
+    }
+
+    /**
+     * Downloads parking spots according to the user's request.
+     * @param type the type of parking spots the program will download.
+     */
+    private void downloadParkings(String type) {
+        LatLng addressLatLng = getLatLngFromAddress(editTextAddress.getText().toString());
+        if (addressLatLng == null)
+            Toast.makeText(ParkSearchActivity.this, R.string.search_address_error_toast_text, Toast.LENGTH_LONG).show();
+        else {
+            List<Address> addresses = getAddressFromLatLng(addressLatLng);
+            if (addresses != null) {
+                if (!TextUtils.isEmpty(editTextAreaLabel.getText().toString()))
+                    firebaseObject.getParkings(addresses, type, true);
+                else
+                    firebaseObject.getParkings(addresses, type, false);
+            }
+        }
     }
 
     /**
@@ -403,9 +576,81 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
         return true;
     }
 
+    /**
+     * Moves camera to the target coordinates.
+     * @param target the target in latlng.
+     */
     private void moveCameraToTarget(LatLng target) {
         if (gpsTrackerService != null)
             gMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(target.latitude, target.longitude), MAP_ZOOM_DEFAULT));
+    }
+
+    /**
+     * Removes existing markers from map and clears the markers ArrayList.
+     */
+    private void removeMarkersFromMap() {
+        if (parkingMarkerList.size() > 0) {
+            for(Marker m : parkingMarkerList)
+                m.remove();
+        }
+        parkingMarkerList.clear();
+    }
+
+    /**
+     * Adds a custom marker to the map.
+     * @param drawable the marker's drawable address.
+     * @param location the location to add the marker at.
+     * @param isUserLocation whether the marker is the user's location.
+     */
+    private void addCustomMarker(int drawable, LatLng location, boolean isUserLocation, Parking parking, List<Address> addresses) {
+        if (isUserLocation) {
+            BitmapDescriptor icon = BitmapDescriptorFactory.fromResource(drawable);
+            if (currentLocationMarker != null)
+                currentLocationMarker.remove();
+            if (currentLocation != null)
+                currentLocationMarker = gMap.addMarker(new MarkerOptions()
+                        .position(location)
+                        .rotation(0)
+                        .icon(icon));
+        }
+        else {
+            Bitmap b = BitmapFactory.decodeResource(getResources(), drawable);
+            Bitmap smallMarker = Bitmap.createScaledBitmap(b, 100, 100, false);
+            Marker m = gMap.addMarker(new MarkerOptions().
+                    position(location).
+                    icon(BitmapDescriptorFactory.fromBitmap(smallMarker)).
+                    snippet(parking.toString() + addresses.get(0).getAddressLine(0)));
+            gMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
+
+                @Override
+                public View getInfoWindow(Marker arg0) {
+                    return null;
+                }
+
+                @Override
+                public View getInfoContents(Marker marker) {
+
+                    LinearLayout info = new LinearLayout(getApplicationContext());
+                    info.setOrientation(LinearLayout.VERTICAL);
+
+                    TextView title = new TextView(getApplicationContext());
+                    title.setTextColor(Color.BLACK);
+                    title.setGravity(Gravity.CENTER);
+                    title.setTypeface(null, Typeface.BOLD);
+                    title.setText(marker.getTitle());
+
+                    TextView snippet = new TextView(getApplicationContext());
+                    snippet.setTextColor(Color.GRAY);
+                    snippet.setText(marker.getSnippet());
+
+                    info.addView(title);
+                    info.addView(snippet);
+
+                    return info;
+                }
+            });
+            parkingMarkerList.add(m);
+        }
     }
 
     @Override
@@ -426,5 +671,31 @@ public class ParkSearchActivity extends AppCompatActivity implements AzimutServi
     protected void onDestroy() {
         unbindService(serviceConnection);
         super.onDestroy();
+    }
+
+    @Override
+    public void parkingDownloaded(List<Parking> parkingList, String type) {
+        if (parkingList != null) {
+            this.parkingList.addAll(parkingList);
+            switch (type) {
+                case FirebaseComm.FIREBASE_FREE_PARKING_LOCATION:
+                    addFreeParkings();
+                    break;
+                case FirebaseComm.FIREBASE_PAID_PARKING_LOCATION:
+                    if (currentRequest.equals(FirebaseComm.FIREBASE_FREE_PARKING_LOCATION))
+                        addFreeParkings();
+                    break;
+                case FirebaseComm.FIREBASE_PAID_RESIDENTS_PARKING_LOCATION:
+                    if (currentRequest.equals(FirebaseComm.FIREBASE_FREE_PARKING_LOCATION))
+                        addFreeParkings();
+                    break;
+                case FirebaseComm.FIREBASE_EXCEPTION_PARKING_LOCATION:
+                    addFreeParkings();
+                    break;
+                case FirebaseComm.FIREBASE_PARKING_LOT_PARKING_LOCATION:
+
+                    break;
+            }
+        }
     }
 }

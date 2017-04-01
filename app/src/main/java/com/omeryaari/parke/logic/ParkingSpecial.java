@@ -7,29 +7,29 @@ import java.util.GregorianCalendar;
 import java.util.Locale;
 
 /**
- * Blue parking that allows everyone to park (paid) during the day, and allows everyone to park freely during the night.
+ * A free parking spot that has an exception (free at specific times).
  */
-public class ParkingBlue extends Parking implements Serializable {
+public class ParkingSpecial extends Parking implements Serializable {
 
-    private ArrayList<ParkingRule> paidParkingRules;
+    private ArrayList<ParkingRule> prohibitedParkingRules;
 
-    public ParkingBlue() {
+    public ParkingSpecial() {
 
     }
 
-    public ParkingBlue(double latitude, double longitude, ArrayList<ParkingRule> paidParkingRules) {
+    public ParkingSpecial(double latitude, double longitude, ArrayList<ParkingRule> prohibitedParkingRules) {
         super(latitude, longitude);
-        this.paidParkingRules = paidParkingRules;
+        this.prohibitedParkingRules = prohibitedParkingRules;
     }
 
-    public ArrayList<ParkingRule> getPaidParkingRules() {
-        return paidParkingRules;
+    public ArrayList<ParkingRule> getProhibitedParkingRules() {
+        return prohibitedParkingRules;
     }
 
     @Override
     public String toString() {
-        String string = "Paid Parking:\n";
-        for(ParkingRule p : paidParkingRules) {
+        String string = "Prohibited Parking:\n";
+        for(ParkingRule p : prohibitedParkingRules) {
             string += dayIntToString(p.getParkingDay()) + " - " + p.getParkingStartHour() + ":" + p.getParkingStartMinute() + " - " + p.getParkingEndHour() + ":" + p.getParkingEndMinute() + "\n";
         }
         string += "Address: ";

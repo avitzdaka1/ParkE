@@ -9,15 +9,22 @@ public class Parking implements Serializable {
 
     private double longitude;
     private double latitude;
-    private String parkingImageURL;
     private String firebaseKey;
 
     private boolean isReported = false;
 
-    public Parking(double longitude, double latitude, String parkingImageURL) {
-        this.longitude = longitude;
+    @Override
+    public String toString() {
+        return "Free Parking:/nAddress: ";
+    }
+
+    public Parking() {
+
+    }
+
+    public Parking(double latitude, double longitude) {
         this.latitude = latitude;
-        this.parkingImageURL = parkingImageURL;
+        this.longitude = longitude;
     }
 
     public double getLongitude() {
@@ -26,10 +33,6 @@ public class Parking implements Serializable {
 
     public double getLatitude() {
         return latitude;
-    }
-
-    public String getParkingImageURL() {
-        return parkingImageURL;
     }
 
     public boolean isReported() {

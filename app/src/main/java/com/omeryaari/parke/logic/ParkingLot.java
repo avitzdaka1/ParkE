@@ -1,18 +1,33 @@
 package com.omeryaari.parke.logic;
 
+import java.io.Serializable;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.Locale;
+
 /**
  * Parking lot, the price stands for a "whole day" parking price.
  */
-public class ParkingLot extends Parking {
+public class ParkingLot extends Parking implements Serializable {
 
     private double price;
 
-    public ParkingLot(double longitude, double latitude, String parkingImageURL, double price) {
-        super(longitude, latitude, parkingImageURL);
+    public ParkingLot() {
+
+    }
+
+    public ParkingLot(double latitude, double longitude, double price) {
+        super(latitude, longitude);
         this.price = price;
     }
 
     public double getPrice() {
         return price;
+    }
+
+    @Override
+    public String toString() {
+        String string = "Parking Lot:\nPrice: " + price + "\nAddress: ";
+        return string;
     }
 }

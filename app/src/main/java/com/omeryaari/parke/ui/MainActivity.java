@@ -35,6 +35,12 @@ public class MainActivity extends AppCompatActivity {
                 startParkSearchActivity();
             }
         });
+        buttonParkMark.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startParkMarkActivity();
+            }
+        });
     }
 
     /**
@@ -42,6 +48,14 @@ public class MainActivity extends AppCompatActivity {
      */
     private void startParkSearchActivity() {
         Intent intent = new Intent(MainActivity.this, ParkSearchActivity.class);
+        MainActivity.this.startActivity(intent);
+    }
+
+    /**
+     * Starts the parking mark activity.
+     */
+    private void startParkMarkActivity() {
+        Intent intent = new Intent(MainActivity.this, ParkMarkActivity.class);
         MainActivity.this.startActivity(intent);
     }
 }
