@@ -27,7 +27,7 @@ public class ParkingLot extends Parking implements Serializable {
 
     @Override
     public String toString() {
-        String string = "Parking Lot:\nPrice: " + price + "\nAddress: ";
+        String string = "Price: " + price + "\nAddress: ";
         return string;
     }
 }

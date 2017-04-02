@@ -26,6 +26,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
+                android:textStyle="bold"
                 android:text="@string/search_text_main"
                 android:textColor="@android:color/black"
                 android:textSize="30sp"/>
@@ -43,6 +44,7 @@
                     android:layout_gravity="center"
                     android:layout_weight="1"
                     android:padding="0dp"
+                    android:textStyle="bold"
                     android:text="@string/search_text_address"
                     android:textColor="@android:color/black"
                     android:textSize="15sp"/>
@@ -73,12 +75,14 @@
                     android:padding="0dp"
                     android:text="@string/search_text_day"
                     android:textColor="@android:color/black"
-                    android:textSize="15sp"/>
+                    android:textSize="15sp"
+                    android:textStyle="bold"/>
 
                 <Spinner
                     android:id="@+id/spinner_parking_mark_day"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_gravity="center"
                     android:layout_weight="3">
                 </Spinner>
 
@@ -91,7 +95,8 @@
                     android:padding="0dp"
                     android:text="@string/search_text_area_label"
                     android:textColor="@android:color/black"
-                    android:textSize="15sp"/>
+                    android:textSize="15sp"
+                    android:textStyle="bold"/>
 
                 <EditText
                     android:id="@+id/editext_search_area_label"
@@ -119,8 +124,7 @@
                     android:layout_gravity="center"
                     android:padding="0dp"
                     android:layout_weight="1"
-
-
+                    android:textStyle="bold"
                     android:text="@string/search_text_start_time"
                     android:textColor="@android:color/black"
                     android:textSize="15sp"/>
@@ -150,6 +154,7 @@
                     android:layout_gravity="center"
                     android:layout_weight="1"
                     android:text="@string/search_text_end_time"
+                    android:textStyle="bold"
                     android:textColor="@android:color/black"
                     android:textSize="15sp"/>
 

@@ -27,6 +27,7 @@
                 android:layout_gravity="center"
                 android:text="@string/search_text_main"
                 android:textColor="@android:color/black"
+                android:textStyle="bold"
                 android:textSize="30sp"/>
 
             <LinearLayout
@@ -41,6 +42,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/mark_parking_type_text"
+                    android:textStyle="bold"
                     android:textColor="@android:color/black"
                     android:textSize="15sp"/>
 
@@ -73,6 +75,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/mark_parking_day_text"
+                        android:textStyle="bold"
                         android:textColor="@android:color/black"
                         android:textSize="15sp"/>
 
@@ -98,6 +101,7 @@
                         android:layout_gravity="center"
                         android:layout_weight="1"
                         android:text="@string/mark_parking_start_time_text"
+                        android:textStyle="bold"
                         android:textColor="@android:color/black"
                         android:textSize="15sp"/>
 
@@ -125,6 +129,7 @@
                         android:layout_gravity="center"
                         android:layout_weight="1"
                         android:text="@string/mark_parking_end_time_text"
+                        android:textStyle="bold"
                         android:textColor="@android:color/black"
                         android:textSize="15sp"/>
 
@@ -151,6 +156,7 @@
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"
                         android:layout_weight="1"
+                        android:textStyle="bold"
                         android:text="@string/mark_parking_current_rules_text"
                         android:textColor="@android:color/black"
                         android:textSize="15sp"/>
@@ -193,6 +199,7 @@
                             android:layout_height="wrap_content"
                             android:layout_gravity="center"
                             android:text="@string/mark_parking_price_text"
+                            android:textStyle="bold"
                             android:textColor="@android:color/black"
                             android:textSize="15sp"/>
 
@@ -230,6 +237,7 @@
                             android:layout_height="wrap_content"
                             android:layout_gravity="center"
                             android:text="@string/mark_parking_label_text"
+                            android:textStyle="bold"
                             android:textColor="@android:color/black"
                             android:textSize="15sp"/>
 

@@ -41,11 +41,11 @@ public class ParkingBlueResidents extends Parking implements Serializable {
 
     @Override
     public String toString() {
-        String string = "Paid Parking:\n";
+        String string = "Paid (blue) parking rules:\n";
         for(ParkingRule p : paidParkingRules) {
             string += dayIntToString(p.getParkingDay()) + " - " + p.getParkingStartHour() + ":" + p.getParkingStartMinute() + " - " + p.getParkingEndHour() + ":" + p.getParkingEndMinute() + "\n";
         }
-        string += "Paid residents parking:\nLabel: " + areaLabel + "\n";
+        string += "Paid (residents) parking rules:\nLabel: " + areaLabel + "\n";
         for(ParkingRule p : residentParkingRules) {
             string += dayIntToString(p.getParkingDay()) + " - " + p.getParkingStartHour() + ":" + p.getParkingStartMinute() + " - " + p.getParkingEndHour() + ":" + p.getParkingEndMinute() + "\n";
         }

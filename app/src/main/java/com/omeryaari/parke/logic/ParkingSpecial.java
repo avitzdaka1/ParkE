@@ -28,7 +28,7 @@ public class ParkingSpecial extends Parking implements Serializable {
 
     @Override
     public String toString() {
-        String string = "Prohibited Parking:\n";
+        String string = "Parking rules:\n";
         for(ParkingRule p : prohibitedParkingRules) {
             string += dayIntToString(p.getParkingDay()) + " - " + p.getParkingStartHour() + ":" + p.getParkingStartMinute() + " - " + p.getParkingEndHour() + ":" + p.getParkingEndMinute() + "\n";
         }
