@@ -17,6 +17,11 @@
     <string name="mark_parking_residents_text">Residents</string>
     <string name="mark_parking_price_text">Price:</string>
     <string name="mark_error_toast_text">Please enter correct times.</string>
+    <string name="mark_parking_rule_added_toast_text">Parking rule added.</string>
+    <string name="mark_parking_marked_toast_text">Parking marked.</string>
+    <string name="mark_parking_add_rules_toast_text">Please add parking rules.</string>
+    <string name="mark_parking_enter_price_toast_text">Please enter park lot price.</string>
+    <string name="mark_parking_enter_label_toast_text">Please enter area label.</string>
     <string name="mark_parking_label_text">Label:</string>
     <string name="marker_parking_header_text"><u>Parking</u></string>
     <string name="marker_parking_click_to_navigate_text">Click to navigate!</string>

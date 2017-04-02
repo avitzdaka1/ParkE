@@ -28,6 +28,7 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TimePicker;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -200,6 +201,22 @@ public class ParkMarkActivity extends AppCompatActivity implements AzimutService
     }
 
     /**
+     * Returns full address as a string.
+     * @param address the address information.
+     * @return full address string.
+     */
+    private String getFullAddress(List<Address> address) {
+        if (address != null && address.size() > 0) {
+            String string = new String();
+            string += address.get(0).getAddressLine(0) + ",\n";
+            string += address.get(0).getLocality() + ",\n";
+            string += address.get(0).getCountryName();
+            return string;
+        }
+        return null;
+    }
+
+    /**
      * Initializes the parking mark button.
      */
     private void initParkingMarkButton() {
@@ -211,32 +228,50 @@ public class ParkMarkActivity extends AppCompatActivity implements AzimutService
                     List<Address> addresses = getAddressFromLatLng(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()));
                     switch (spinnerParkingType.getSelectedItem().toString()) {
                         case PARKING_FREE:
-                            parking = new Parking(currentLocation.getLatitude(), currentLocation.getLongitude());
+                            parking = new Parking(currentLocation.getLatitude(), currentLocation.getLongitude(), getFullAddress(addresses));
                             firebaseObject.saveParking(parking, addresses);
+                            Toast.makeText(ParkMarkActivity.this, R.string.mark_parking_marked_toast_text, Toast.LENGTH_LONG).show();
                             break;
                         case PARKING_BLUE:
-                            parking = new ParkingBlue(currentLocation.getLatitude(), currentLocation.getLongitude(), parkingRules1);
-                            if (parkingRules1.size() > 0)
+                            parking = new ParkingBlue(currentLocation.getLatitude(), currentLocation.getLongitude(), getFullAddress(addresses), parkingRules1);
+                            if (parkingRules1.size() > 0) {
                                 firebaseObject.saveParking(parking, addresses);
+                                Toast.makeText(ParkMarkActivity.this, R.string.mark_parking_marked_toast_text, Toast.LENGTH_LONG).show();
+                            }
+                            else
+                                Toast.makeText(ParkMarkActivity.this, R.string.mark_parking_add_rules_toast_text, Toast.LENGTH_LONG).show();
                             break;
                         case PARKING_BLUE_RESIDENTS:
                             if (!TextUtils.isEmpty(editTextLabel.getText().toString())) {
-                                parking = new ParkingBlueResidents(currentLocation.getLatitude(), currentLocation.getLongitude(),
+                                parking = new ParkingBlueResidents(currentLocation.getLatitude(), currentLocation.getLongitude(), getFullAddress(addresses),
                                         Integer.parseInt(editTextLabel.getText().toString()), parkingRules1, parkingRules2);
-                                if (parkingRules1.size() > 0 && parkingRules2.size() > 0)
+                                if (parkingRules1.size() > 0 || parkingRules2.size() > 0) {
                                     firebaseObject.saveParking(parking, addresses);
+                                    Toast.makeText(ParkMarkActivity.this, R.string.mark_parking_marked_toast_text, Toast.LENGTH_LONG).show();
+                                }
+                                else
+                                    Toast.makeText(ParkMarkActivity.this, R.string.mark_parking_add_rules_toast_text, Toast.LENGTH_LONG).show();
                             }
+                            else
+                                Toast.makeText(ParkMarkActivity.this, R.string.mark_parking_enter_label_toast_text, Toast.LENGTH_LONG).show();
                             break;
                         case PARKING_PARK_LOT:
                             if (!TextUtils.isEmpty(editTextPrice.getText().toString())) {
-                                parking = new ParkingLot(currentLocation.getLatitude(), currentLocation.getLongitude(), Double.parseDouble(editTextPrice.getText().toString()));
+                                parking = new ParkingLot(currentLocation.getLatitude(), currentLocation.getLongitude(), getFullAddress(addresses), Double.parseDouble(editTextPrice.getText().toString()));
                                 firebaseObject.saveParking(parking, addresses);
+                                Toast.makeText(ParkMarkActivity.this, R.string.mark_parking_marked_toast_text, Toast.LENGTH_LONG).show();
                             }
+                            else
+                                Toast.makeText(ParkMarkActivity.this, R.string.mark_parking_enter_price_toast_text, Toast.LENGTH_LONG).show();
                             break;
                         case PARKING_SPECIAL:
-                            parking = new ParkingSpecial(currentLocation.getLatitude(), currentLocation.getLongitude(), parkingRules1);
-                            if (parkingRules1.size() > 0)
+                            parking = new ParkingSpecial(currentLocation.getLatitude(), currentLocation.getLongitude(), getFullAddress(addresses), parkingRules1);
+                            if (parkingRules1.size() > 0) {
                                 firebaseObject.saveParking(parking, addresses);
+                                Toast.makeText(ParkMarkActivity.this, R.string.mark_parking_marked_toast_text, Toast.LENGTH_LONG).show();
+                            }
+                            else
+                                Toast.makeText(ParkMarkActivity.this, R.string.mark_parking_add_rules_toast_text, Toast.LENGTH_LONG).show();
                             break;
                     }
 
@@ -314,6 +349,7 @@ public class ParkMarkActivity extends AppCompatActivity implements AzimutService
                             if (parkingRules != null) {
                                 if (parkingRules.size() > 0)
                                     parkingRules1.addAll(parkingRules);
+                                Toast.makeText(ParkMarkActivity.this, R.string.mark_parking_rule_added_toast_text, Toast.LENGTH_LONG).show();
                             }
                         }
                         break;
@@ -327,6 +363,7 @@ public class ParkMarkActivity extends AppCompatActivity implements AzimutService
                                         parkingRules2.addAll(parkingRules);
                                     else
                                         parkingRules1.addAll(parkingRules);
+                                    Toast.makeText(ParkMarkActivity.this, R.string.mark_parking_rule_added_toast_text, Toast.LENGTH_LONG).show();
                                 }
                             }
                         }
@@ -337,6 +374,7 @@ public class ParkMarkActivity extends AppCompatActivity implements AzimutService
                             if (parkingRules != null) {
                                 if (parkingRules.size() > 0)
                                     parkingRules1.addAll(parkingRules);
+                                Toast.makeText(ParkMarkActivity.this, R.string.mark_parking_rule_added_toast_text, Toast.LENGTH_LONG).show();
                             }
                         }
                         break;
@@ -613,8 +651,11 @@ public class ParkMarkActivity extends AppCompatActivity implements AzimutService
 
     @Override
     public void onNewLocation(Location location) {
-        if (currentLocationMarker != null)
-            currentLocationMarker.setPosition(new LatLng(location.getLatitude(), location.getLongitude()));
+        if (currentLocationMarker != null) {
+            LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+            currentLocationMarker.setPosition(latLng);
+            gMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, ParkSearchActivity.MAP_ZOOM_DEFAULT));
+        }
     }
 
     /**
@@ -643,7 +684,6 @@ public class ParkMarkActivity extends AppCompatActivity implements AzimutService
             MapFragment mapFragment = MapFragment.newInstance();
             transaction.replace(R.id.fragment_park_mark_map, mapFragment);
             transaction.commit();
-
             mapFragment.getMapAsync(new OnMapReadyCallback() {
                 @Override
                 public void onMapReady(GoogleMap googleMap) {

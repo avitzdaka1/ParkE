@@ -16,8 +16,8 @@ public class ParkingLot extends Parking implements Serializable {
 
     }
 
-    public ParkingLot(double latitude, double longitude, double price) {
-        super(latitude, longitude);
+    public ParkingLot(double latitude, double longitude, String streetAddress, double price) {
+        super(latitude, longitude, streetAddress);
         this.price = price;
     }
 
@@ -27,7 +27,7 @@ public class ParkingLot extends Parking implements Serializable {
 
     @Override
     public String toString() {
-        String string = "Price: " + price + "\nAddress: ";
+        String string = "Price: " + price + "\n" + "Address:\n";
         return string;
     }
 }

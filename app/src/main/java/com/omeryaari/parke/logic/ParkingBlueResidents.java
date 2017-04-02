@@ -3,6 +3,7 @@ package com.omeryaari.parke.logic;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.Locale;
 
@@ -19,8 +20,8 @@ public class ParkingBlueResidents extends Parking implements Serializable {
 
     }
 
-    public ParkingBlueResidents(double latitude, double longitude, int areaLabel, ArrayList<ParkingRule> paidParkingRules, ArrayList<ParkingRule> residentParkingRules) {
-        super(latitude, longitude);
+    public ParkingBlueResidents(double latitude, double longitude, String streetAddress, int areaLabel, ArrayList<ParkingRule> paidParkingRules, ArrayList<ParkingRule> residentParkingRules) {
+        super(latitude, longitude, streetAddress);
         this.areaLabel = areaLabel;
         this.paidParkingRules = paidParkingRules;
         this.residentParkingRules = residentParkingRules;
@@ -42,19 +43,18 @@ public class ParkingBlueResidents extends Parking implements Serializable {
     @Override
     public String toString() {
         String string = "Paid (blue) parking rules:\n";
+        Collections.sort(paidParkingRules);
         for(ParkingRule p : paidParkingRules) {
             string += dayIntToString(p.getParkingDay()) + " - " + p.getParkingStartHour() + ":" + p.getParkingStartMinute() + " - " + p.getParkingEndHour() + ":" + p.getParkingEndMinute() + "\n";
         }
-        string += "Paid (residents) parking rules:\nLabel: " + areaLabel + "\n";
-        for(ParkingRule p : residentParkingRules) {
-            string += dayIntToString(p.getParkingDay()) + " - " + p.getParkingStartHour() + ":" + p.getParkingStartMinute() + " - " + p.getParkingEndHour() + ":" + p.getParkingEndMinute() + "\n";
-        }
-        string += "Address: ";
+        string += "Label: " + areaLabel + "\n";
+        string += "Address:\n";
         return string;
     }
 
     private String dayIntToString(int day) {
         Calendar calendar = new GregorianCalendar();
+        calendar.set(Calendar.DAY_OF_WEEK, day);
         return calendar.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.SHORT, Locale.US);
     }
 }

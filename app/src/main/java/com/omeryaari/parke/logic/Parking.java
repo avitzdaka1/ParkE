@@ -10,21 +10,27 @@ public class Parking implements Serializable {
     private double longitude;
     private double latitude;
     private String firebaseKey;
+    private String streetAddress;
 
     private boolean isReported = false;
 
     @Override
     public String toString() {
-        return "Address: ";
+        return "Address:\n";
     }
 
     public Parking() {
 
     }
 
-    public Parking(double latitude, double longitude) {
+    public Parking(double latitude, double longitude, String streetAddress) {
         this.latitude = latitude;
         this.longitude = longitude;
+        this.streetAddress = streetAddress;
+    }
+
+    public String getStreetAddress() {
+        return streetAddress;
     }
 
     public double getLongitude() {
