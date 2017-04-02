@@ -25,7 +25,4 @@
     <string name="mark_parking_label_text">Label:</string>
     <string name="marker_parking_header_text"><u>Parking</u></string>
     <string name="marker_parking_click_to_navigate_text">Click to navigate!</string>
-
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

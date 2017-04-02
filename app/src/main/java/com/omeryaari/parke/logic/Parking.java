@@ -16,7 +16,7 @@ public class Parking implements Serializable {
 
     @Override
     public String toString() {
-        return "Address:\n";
+        return "Address:\nw ";
     }
 
     public Parking() {
