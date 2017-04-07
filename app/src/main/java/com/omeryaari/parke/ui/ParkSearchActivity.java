@@ -723,15 +723,18 @@ public class ParkSearchActivity extends AppCompatActivity implements GPSTrackerS
      * @return the distance.
      */
     private double calcDistanceBetween2GeoPoints(LatLng source, LatLng destination) {
-        Location loc1 = new Location("");
-        loc1.setLatitude(source.latitude);
-        loc1.setLongitude(source.longitude);
+        if (source != null && destination != null) {
+            Location loc1 = new Location("");
+            loc1.setLatitude(source.latitude);
+            loc1.setLongitude(source.longitude);
 
-        Location loc2 = new Location("");
-        loc2.setLatitude(destination.latitude);
-        loc2.setLongitude(destination.longitude);
+            Location loc2 = new Location("");
+            loc2.setLatitude(destination.latitude);
+            loc2.setLongitude(destination.longitude);
 
-        return loc1.distanceTo(loc2);
+            return loc1.distanceTo(loc2);
+        }
+        return PARKING_RADIUS;
     }
 
     @Override
